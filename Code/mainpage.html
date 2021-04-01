@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Welcome to your address book</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="stylesheet.css" media="screen" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row pad justify-content-center align-items-center text-center bg-success text-white">
+            <div class="col-6">
+                <p>Welcome to the application you can logout <a href="{{ logout_url }}">here</a></p>
+            </div>
+            <div class="col-6">
+                <p>
+                    Current username: {{username}}
+                    <form action="/" method="post">
+                        <input type="text" name="changed_username" placeholder="Enter new username" required />
+                        <button type="submit" class="btn-dark" name="button" value="Change username">Submit</button>
+                    </form>
+                </p>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid bg-dark  text-white py-5">
+        <!-- from that will be used to permit the user to add a new address -->
+        <h4 class="py-5 text-center">Current Directory: {{directory_saved_in}}</h4>
+        {% if directory_saved_in != "home" %}
+        <div class="pl-3 py-5 text-center">
+            <form action="/" method="post">
+                <input type="hidden" name="go_to_parent_directory" value="{{parent_directory}}" />
+                <button type="submit" class="btn-dark bg-success py-3 px-4" name="button" value="../">../</button>
+            </form>
+        </div>
+        {% endif %}
+        <div class="row">
+            <div class="col-6 pl-5">
+                <form action="/" method="post" class="form-inline">
+                    <P>Create Directory: <input type="text" name="line1" required />
+                        <input type="hidden" name="directory_saved_in" value="{{directory_saved_in}}" />
+                        <input type="hidden" name="owner" value="{{username}}">
+                        <button type="submit" name="button" class="btn-success" value="+ Directory">Submit</button>
+                    </P>
+                </form>
+                <!-- form for uploading a file to the blobstore -->
+                <form action="{{ upload_url }}" method="post" enctype="multipart/form-data">
+                    <p>Upload File: <input type="file" name="file" class="btn-dark" required /><br />
+                        <input type="hidden" name="directory" value="{{directory_saved_in}}" />
+                        <input type="hidden" name="owner" value="{{username}}" />
+                        <button class="btn-success" type="submit">Submit</button>
+                    </p>
+                </form>
+            </div>
+            <div class="col-6 text-center">
+                <h2>Feedback Section</h2>
+                <p>Feedback: {{feedback}}</p>
+                <p>Duplicates(User directory): {{duplicates}}</p>
+                <p>Duplicates(Current directory): {{cur_duplicates}}</p>
+            </div>
+        </div>
+    </div>
+    <!-- we will print out the list of addresses that are attached to this
+user -->
+    <div class="container">
+        <h2 class="text-center py-5">Directories:</h2>
+        {% for i in directories %}
+        {% if i.directory_saved_in == directory_saved_in%}
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        Directory Address {{ loop.index }}<br />
+                        Name:{{ i.line1 }}<br />
+                        Directory saved in: {{ i.directory_saved_in }}<br />
+                        Owner: {{i.owner}}
+                    </div>
+                    <div class="col-6">
+                        <form action="/" method="post">
+                            <input type="hidden" name="entered_directory" value="{{i.line1}}" />
+                            <input type="hidden" name="parent_directory" value="{{i.directory_saved_in}}">
+                            <button type="submit" value="Enter Directory" class="btn-dark" name="button">Enter
+                                Directory</button>
+                        </form>
+                        </br>
+                        <form action="/" method="post">
+                            <input type="hidden" name="index" value="{{ loop.index - 1 }}" />
+                            <button type="submit" value="Delete" name="button" class="btn-dark">Delete</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        </br>
+        </br>
+        {% endfor %}
+    </div>
+
+    <div class="container">
+        <h2 class="text-center py-5">Files:</h2>
+        {% for i in collection.filenames %}
+        {% set counter = counter + 1 %}
+
+        {% if collection_directory[loop.index-1] == directory_saved_in %}
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+
+                        Name: {{collection_filenames[loop.index -1]}}</br>
+                        Size: {{collection_sizes[loop.index-1]}}KB</br>
+                        Type: {{collection_types[loop.index-1]}}</br>
+                        Creation Date: {{collection_creations[loop.index-1]}}</br>
+                        Directory saved in: {{collection_directory[loop.index-1]}}</br>
+                        User: {{collection_user[loop.index-1]}}</br>
+                        <!--<p>{{loop.index-1}}</p>-->
+
+                    </div>
+                    <div class="col-6">
+                        {% if non_cur_directories|length > 0 %}
+                        <p>Select a directory to send file to:</p>
+
+                        {% if directory_saved_in == 'home' %}
+
+
+                        <form action="/" method="post">
+                            {% for i in non_cur_directories %}
+                            <div class="form-check">
+                                <label class="form-check-label" required>
+                                    <input type="radio" class="form-check-input" name="optradio" value="{{i.line1}}"
+                                        required>
+                                    {{i.line1}}
+                                    <input type="hidden" name="index" value="{{counter-1}}" />
+                                    <input type="hidden" name="directory" value="{{directory_saved_in}}" />
+                                </label>
+                            </div>
+                            {% endfor %}
+                            </br>
+                            <button type="submit" class="btn-dark" name='button' value="Send File">Send
+                                File</button>
+                        </form>
+                        <form action="/download" method="get">
+                            <input type="hidden" value="{{ loop.index - 1 }}" name="index" />
+                            <button type="submit" value="Download" class="btn-dark" name="Download">Download</button>
+                        </form>
+                        <form action="/" method="post">
+                            <input type="hidden" value="{{ loop.index - 1}}" name="delete_index" />
+                            <button type="submit" value="Delete File" class="btn-dark" name="button">Delete</button>
+                        </form>
+
+                        {% else  %}
+                        <form action="/" method="post">
+                            {% for i in non_cur_directories %}
+                            <div class="form-check">
+                                <label class="form-check-label" required>
+                                    <input type="radio" class="form-check-input" name="optradio" value="{{i.line1}}"
+                                        required>
+                                    {{i.line1}}
+                                    <input type="hidden" name="index" value="{{counter-1}}" />
+                                    <input type="hidden" name="directory" value="{{directory_saved_in}}" />
+                                </label>
+                            </div>
+
+                            {% endfor %}
+                            <div class="form-check">
+                                <label class="form-check-label" required>
+                                    <input type="radio" class="form-check-input" name="optradio" value="home" required>
+                                    home
+                                    <input type="hidden" name="index" value="{{counter-1}}" />
+                                    <input type="hidden" name="directory" value="{{directory_saved_in}}" />
+                                </label>
+                            </div>
+                            </br>
+                            <button type="submit" class="btn-dark" name='button' value="Send File">Send File</button>
+                        </form>
+                        <form action="/download" method="get">
+                            <input type="hidden" value="{{ loop.index - 1 }}" name="index" />
+                            <button type="submit" value="Download" class="btn-dark" name="Download">Download</button>
+                        </form>
+                        <form action="/" method="post">
+                            <input type="hidden" value="{{ loop.index - 1}}" name="delete_index" />
+                            <button type="submit" value="Delete File" class="btn-dark" name="button">Delete</button>
+                        </form>
+                        {% endif%}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        </br>
+        </br>
+        {% endif %}
+        {% endfor %}
+    </div>
+</body>
+
+</html>
